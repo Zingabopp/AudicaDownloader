@@ -10,7 +10,11 @@ namespace AudicaDownloader
             Console.WriteLine("Starting AudicaDownloader...");
             Console.WriteLine("Fetching song list...");
             Downloader downloader = new Downloader();
-            var songs = await downloader.FetchSongPage().ConfigureAwait(false);
+            int pageIndex = 1;
+            var songs = await downloader.FetchSongPage(pageIndex).ConfigureAwait(false);
+            pageIndex++;
+            int totalPages = (int)songs.TotalPages;
+
             Console.WriteLine($"Found {songs.SongCount} songs");
             Console.Read();
         }

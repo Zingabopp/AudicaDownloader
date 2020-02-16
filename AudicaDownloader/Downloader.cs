@@ -9,14 +9,17 @@ namespace AudicaDownloader
 {
     public class Downloader
     {
+        private const string PAGEKEY = "{PAGEKEY}";
         private static readonly HttpClient HttpClient = AudicaHttpClient.GetClient();
-        private static readonly string FetchUrl = "http://www.audica.wiki:5000/api/customsongs";
-        public async Task<AudicaSongList> FetchSongPage()
+        private static readonly string FetchUrl = $"http://www.audica.wiki:5000/api/customsongs?page={PAGEKEY}";
+        public async Task<AudicaSongList> FetchSongPage(int page)
         {
+            if (page < 1)
+                throw new ArgumentException($"Page cannot be less than 1");
             AudicaSongList songList = null;
             try
             {
-                var response = await HttpClient.GetAsync(FetchUrl).ConfigureAwait(false);
+                var response = await HttpClient.GetAsync(FetchUrl.Replace(PAGEKEY, page.ToString())).ConfigureAwait(false);
                 if(response.IsSuccessStatusCode)
                 {
                     songList = AudicaSongList.FromJson(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
