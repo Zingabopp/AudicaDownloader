@@ -12,6 +12,8 @@ namespace AudicaDownloader
         private const string PAGEKEY = "{PAGEKEY}";
         private static readonly HttpClient HttpClient = AudicaHttpClient.GetClient();
         private static readonly string FetchUrl = $"http://www.audica.wiki:5000/api/customsongs?page={PAGEKEY}";
+        public string DownloadFolder { get; set; }
+        public string GameDirectory { get; set; }
         public async Task<AudicaSongList> FetchSongPage(int page)
         {
             if (page < 1)
@@ -20,7 +22,7 @@ namespace AudicaDownloader
             try
             {
                 var response = await HttpClient.GetAsync(FetchUrl.Replace(PAGEKEY, page.ToString())).ConfigureAwait(false);
-                if(response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
                     songList = AudicaSongList.FromJson(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                 }
@@ -28,7 +30,8 @@ namespace AudicaDownloader
                 {
                     Console.WriteLine($"Http failed retrieving song list: {response.StatusCode}: {response.ReasonPhrase}");
                 }
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine($"Error retrieving song list: {ex.Message}");
                 Console.WriteLine(ex);
@@ -36,35 +39,59 @@ namespace AudicaDownloader
             return songList;
         }
 
-        public async Task<bool> DownloadSong(string url, string fileTarget)
+        public async Task<DownloadResult[]> DownloadSongs(IEnumerable<AudicaSong> songs)
+        {
+            string tempFolder = DownloadFolder;
+            string gameFolder = GameDirectory;
+            List<DownloadResult> downloadResults = new List<DownloadResult>();
+            foreach (var song in songs)
+            {
+                DownloadResult result = await DownloadSong(song, gameFolder);
+                downloadResults.Add(result);
+            }
+
+            return downloadResults.ToArray();
+        }
+
+        public Task<DownloadResult> DownloadSong(AudicaSong song, string downloadFolder)
+        {
+            string downloadPath = Path.Combine(downloadFolder, song.SongId, ".audica");
+            return DownloadSong(song.DownloadUrl, song.SongId, downloadPath);
+        }
+
+        public async Task<DownloadResult> DownloadSong(Uri url, string songId, string fileTarget)
         {
             bool successful = false;
+            Exception exception = null;
             try
             {
-                var response = await HttpClient.GetAsync(FetchUrl).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode)
+                var response = await HttpClient.GetAsync(FetchUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                using (var fs = new FileStream(fileTarget, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    using (var fs = new FileStream(fileTarget, FileMode.Create, FileAccess.Write, FileShare.None))
-                    {
-                        await (await response.Content.ReadAsStreamAsync().ConfigureAwait(false)).CopyToAsync(fs).ConfigureAwait(false);
-                    }
+                    await (await response.Content.ReadAsStreamAsync().ConfigureAwait(false)).CopyToAsync(fs).ConfigureAwait(false);
                 }
-                else
-                {
-                    Console.WriteLine($"Http failed downloading song at {url}: {response.StatusCode}: {response.ReasonPhrase}");
-                }
+                successful = true;
             }
-            catch(IOException ex)
+            catch (HttpRequestException ex)
             {
+                exception = ex;
+                Console.WriteLine($"Http failed downloading song at {url}: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                exception = ex;
                 Console.WriteLine($"IO Error downloading song to {fileTarget}");
                 Console.WriteLine(ex);
             }
             catch (Exception ex)
             {
+                exception = ex;
                 Console.WriteLine($"Error downloading song from {url}: {ex.Message}");
                 Console.WriteLine(ex);
             }
-            return successful;
+            return new DownloadResult(songId, successful, fileTarget, exception);
         }
     }
 }

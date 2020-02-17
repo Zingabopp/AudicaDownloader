@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using System.Globalization;
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -11,23 +12,29 @@ namespace AudicaDownloader
     public partial class AudicaSongList
     {
         [JsonProperty("pagesize")]
-        public long Pagesize { get; set; }
+        public int Pagesize { get; set; }
 
         [JsonProperty("song_count")]
-        public long SongCount { get; set; }
+        public int SongCount { get; set; }
 
         [JsonProperty("page")]
-        public long Page { get; set; }
+        public int Page { get; set; }
 
         [JsonProperty("songs")]
-        public List<Song> Songs { get; set; }
+        public List<AudicaSong> Songs { get; set; }
 
         [JsonProperty("total_pages")]
-        public long TotalPages { get; set; }
+        public int TotalPages { get; set; }
     }
 
-    public partial class Song
+    public partial class AudicaSong
     {
+        [JsonIgnore]
+        private string _songId;
+        public static string CreateSongId(AudicaSong song)
+        {
+            return string.Join("", $"{song.Title}-{song.Artist}-{song.Author}".Split(Path.GetInvalidFileNameChars())).Replace(" ", "");
+        }
         [JsonProperty("filename")]
         public string Filename { get; set; }
 
@@ -41,8 +48,16 @@ namespace AudicaDownloader
         public bool MidiForCues { get; set; }
 
         [JsonProperty("song_id")]
-        public string SongId { get; set; }
-
+        public string SongId
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_songId))
+                    _songId = CreateSongId(this);
+                return _songId;
+            }
+            set { _songId = value; }
+        }
         [JsonProperty("title")]
         public string Title { get; set; }
 
@@ -84,6 +99,11 @@ namespace AudicaDownloader
 
         [JsonProperty("leaderboard_id")]
         public string LeaderboardId { get; set; }
+
+        public override string ToString()
+        {
+            return SongId;
+        }
     }
 
     public enum DrumKit { Destruct };
@@ -104,6 +124,7 @@ namespace AudicaDownloader
         {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
             DateParseHandling = DateParseHandling.None,
+            Formatting = Formatting.Indented,
             Converters =
             {
                 DrumKitConverter.Singleton,
