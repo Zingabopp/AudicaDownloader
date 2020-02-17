@@ -51,7 +51,7 @@ namespace AudicaDownloader
             string gameFolder = GameDirectory;
             try
             {
-                Directory.CreateDirectory(tempFolder);
+                //Directory.CreateDirectory(tempFolder);
                 Directory.CreateDirectory(gameFolder);
             }
             catch (Exception ex)
