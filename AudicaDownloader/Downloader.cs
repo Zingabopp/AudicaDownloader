@@ -61,11 +61,16 @@ namespace AudicaDownloader
                 return Array.Empty<DownloadResult>();
             }
             List<DownloadResult> downloadResults = new List<DownloadResult>();
-            int numSongs = songs.Count + 1;
             for (int i = 0; i < songs.Count; i++)
             {
-                Console.Write($"({i + 1}/{numSongs}) Downloading {songs[i].SongId}...");
-                DownloadResult result = await DownloadSong(songs[i], gameFolder);
+                AudicaSong song = songs[i];
+                Console.Write($"({i + 1}/{songs.Count}) Downloading {song.SongId}...");
+                if(File.Exists(Path.Combine(gameFolder, song.SongId + ".audica")))
+                {
+                    Console.WriteLine("Skipped (already exists)");
+                    continue;
+                }
+                DownloadResult result = await DownloadSong(song, gameFolder);
                 if (result.Successful)
                     Console.WriteLine("Done");
                 else
