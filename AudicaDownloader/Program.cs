@@ -12,7 +12,12 @@ namespace AudicaDownloader
         {
             Console.WriteLine("Starting AudicaDownloader...");
             Console.WriteLine("Fetching song list...");
-            Downloader downloader = new Downloader();
+            Config config = new Config()
+            {
+                AudicaGameDirectory = Path.Combine(Environment.CurrentDirectory, "GameDirectory"),
+                TempDirectory = Path.Combine(Environment.CurrentDirectory, "Temp")
+            };
+            Downloader downloader = new Downloader(config);
             int pageIndex = 1;
             AudicaSongList songList = await downloader.FetchSongPage(pageIndex).ConfigureAwait(false);
             List<AudicaSong> songs = new List<AudicaSong>(songList.SongCount);
@@ -28,12 +33,14 @@ namespace AudicaDownloader
                 songCount += songList.Songs.Count;
                 File.WriteAllText($"Songs_{pageIndex}.txt", songList.ToJson());
             }
-            var wrongSongId = songs.Where(s => s.SongId != AudicaSong.CreateSongId(s)).Select(s => (s, AudicaSong.CreateSongId(s))).ToArray();
-            var uniqueSongIds = songs.GroupBy(s => s.SongId).ToArray();
-            var duplicateSongs = uniqueSongIds.Where(g => g.Count() != 1).ToArray();
             var songsToDownload = songs.GroupBy(s => s.SongId).Select(g => g.First()).ToList();
-            var skippeSongs = songs.Except(songsToDownload).ToArray();
-            Console.WriteLine($"Found {songs.Count} songs");
+            Console.WriteLine($"Found {songsToDownload.Count} songs");
+            var downloadResults = await downloader.DownloadSongs(songsToDownload).ConfigureAwait(false);
+            var successfulDownloads = downloadResults.Where(r => r.Successful).Count();
+            var failedDownloads = downloadResults.Where(r => !r.Successful).ToList();
+            Console.WriteLine($"Downloaded {successfulDownloads} songs.");
+            if (failedDownloads.Count > 0)
+                Console.WriteLine($"Failed to download {failedDownloads.Count} songs");
             Console.Read();
         }
     }

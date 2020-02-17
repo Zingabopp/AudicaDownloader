@@ -10,10 +10,16 @@ namespace AudicaDownloader
     public class Downloader
     {
         private const string PAGEKEY = "{PAGEKEY}";
-        private static readonly HttpClient HttpClient = AudicaHttpClient.GetClient();
+        private readonly HttpClient HttpClient;
         private static readonly string FetchUrl = $"http://www.audica.wiki:5000/api/customsongs?page={PAGEKEY}";
         public string DownloadFolder { get; set; }
         public string GameDirectory { get; set; }
+        public Downloader(Config config)
+        {
+            DownloadFolder = config.TempDirectory;
+            GameDirectory = config.AudicaGameDirectory;
+            HttpClient = AudicaHttpClient.GetClient();
+        }
         public async Task<AudicaSongList> FetchSongPage(int page)
         {
             if (page < 1)
@@ -43,6 +49,17 @@ namespace AudicaDownloader
         {
             string tempFolder = DownloadFolder;
             string gameFolder = GameDirectory;
+            try
+            {
+                Directory.CreateDirectory(tempFolder);
+                Directory.CreateDirectory(gameFolder);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating DownloadFolder or GameDirectory folder.");
+                Console.WriteLine(ex);
+                return Array.Empty<DownloadResult>();
+            }
             List<DownloadResult> downloadResults = new List<DownloadResult>();
             foreach (var song in songs)
             {
