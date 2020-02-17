@@ -23,7 +23,7 @@ namespace AudicaDownloader
             List<AudicaSong> songs = new List<AudicaSong>(songList.SongCount);
             songs.AddRange(songList.Songs);
             int totalPages = songList.TotalPages;
-            File.WriteAllText($"Songs_{pageIndex}.txt", songList.ToJson());
+            await File.WriteAllTextAsync($"Songs_{pageIndex}.txt", songList.ToJson());
             int songCount = songList.Songs.Count;
             while (pageIndex < totalPages)
             {
@@ -31,9 +31,10 @@ namespace AudicaDownloader
                 songList = await downloader.FetchSongPage(pageIndex).ConfigureAwait(false);
                 songs.AddRange(songList.Songs);
                 songCount += songList.Songs.Count;
-                File.WriteAllText($"Songs_{pageIndex}.txt", songList.ToJson());
+                await File.WriteAllTextAsync($"Songs_{pageIndex}.txt", songList.ToJson());
             }
             var songsToDownload = songs.GroupBy(s => s.SongId).Select(g => g.First()).ToList();
+            var mismatched = songsToDownload.Where(s => !(s.Filename.StartsWith(s.SongId, StringComparison.OrdinalIgnoreCase)));
             Console.WriteLine($"Found {songsToDownload.Count} songs");
             var downloadResults = await downloader.DownloadSongs(songsToDownload).ConfigureAwait(false);
             var successfulDownloads = downloadResults.Where(r => r.Successful).Count();

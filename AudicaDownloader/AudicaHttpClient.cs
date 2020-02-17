@@ -11,7 +11,9 @@ namespace AudicaDownloader
     {
         public static HttpClient GetClient()
         {
-            HttpClient client = new HttpClient();
+            HttpClientHandler handler = new HttpClientHandler();
+            handler.AutomaticDecompression = System.Net.DecompressionMethods.All;
+            HttpClient client = new HttpClient(handler);
             ProductHeaderValue header = new ProductHeaderValue("AudicaDownloader", Assembly.GetExecutingAssembly().GetName().Version.ToString());
             ProductInfoHeaderValue userAgent = new ProductInfoHeaderValue(header);
             client.DefaultRequestHeaders.UserAgent.Add(userAgent);
