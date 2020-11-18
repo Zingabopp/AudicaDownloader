@@ -30,7 +30,7 @@ namespace AudicaDownloader
                 songs.AddRange(songList.Songs);
                 songCount += songList.Songs.Count;
             }
-            var songsToDownload = songs.GroupBy(s => s.SongId).Select(g => g.OrderByDescending(g => g.UploadTime).First()).ToList(); // Remove duplicate IDs, choose latest
+            var songsToDownload = songs.GroupBy(s => s.Filename).Select(g => g.OrderByDescending(g => g.UploadTime).First()).ToList(); // Remove duplicate IDs, choose latest
             Console.WriteLine($"Found {songsToDownload.Count} songs");
             var downloadResults = await downloader.DownloadSongs(songsToDownload).ConfigureAwait(false);
             var successfulDownloads = downloadResults.Where(r => r.Successful).Count();
