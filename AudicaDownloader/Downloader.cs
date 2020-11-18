@@ -64,8 +64,8 @@ namespace AudicaDownloader
             for (int i = 0; i < songs.Count; i++)
             {
                 AudicaSong song = songs[i];
-                Console.Write($"({i + 1}/{songs.Count}) Downloading {song.SongId}...");
-                if(File.Exists(Path.Combine(gameFolder, song.SongId + ".audica")))
+                Console.Write($"({i + 1}/{songs.Count}) Downloading {song.Filename}...");
+                if(File.Exists(Path.Combine(gameFolder, song.Filename)))
                 {
                     Console.WriteLine("Skipped (already exists)");
                     continue;
@@ -102,7 +102,7 @@ namespace AudicaDownloader
 
         public Task<DownloadResult> DownloadSong(AudicaSong song, string downloadFolder)
         {
-            string downloadPath = Path.Combine(downloadFolder, song.SongId + ".audica");
+            string downloadPath = Path.Combine(downloadFolder, song.Filename);
             return DownloadSong(song.DownloadUrl, song.SongId, downloadPath);
         }
 
